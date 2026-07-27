@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir & Inventori — ATK & Fotocopy MCR2</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#20262E">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MCR2 Kasir">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F1E7;
+    --paper-dark:#EAE1CE;
+    --paper-line:#DBD0B6;
+    --ink:#20262E;
+    --ink-soft:#5B6470;
+    --stamp:#AE3A2E;
+    --stamp-dark:#8C2E24;
+    --teal:#2F6F6B;
+    --teal-dark:#25534F;
+    --amber:#C6862A;
+    --white:#FFFDF8;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(32,38,46,.06), 0 4px 14px rgba(32,38,46,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    letter-spacing:-0.01em;
+  }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+
+  /* Layout */
+  #app{ display:flex; min-height:100vh; }
+
+  /* Sidebar */
+  .sidebar{
+    width:230px;
+    flex-shrink:0;
+    background:var(--paper-dark);
+    border-right:2px dashed var(--paper-line);
+    padding:22px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .brand{
+    padding:6px 10px 20px 10px;
+  }
+  .brand .display{ font-size:20px; font-weight:700; color:var(--ink); margin:0; line-height:1.15; }
+  .brand .tag{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.12em; margin-top:4px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px;
+    border-radius:8px;
+    color:var(--ink-soft);
+    font-size:14px; font-weight:500;
+    cursor:pointer;
+    border:none; background:none; width:100%; text-align:left;
+    transition:background .12s ease, color .12s ease;
+  }
+  .nav-item svg{ width:17px; height:17px; flex-shrink:0; opacity:.85; }
+  .nav-item:hover{ background:rgba(32,38,46,.06); color:var(--ink); }
+  .nav-item.active{ background:var(--ink); color:var(--paper); }
+  .nav-item.active svg{ opacity:1; }
+  .sidebar-footer{ margin-top:auto; padding:10px; font-size:11px; color:var(--ink-soft); border-top:1px dashed var(--paper-line); padding-top:14px; }
+
+  /* Main */
+  main{ flex:1; padding:28px 32px; overflow-x:hidden; max-width:1280px; }
+  .view{ display:none; animation:fade .18s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .page-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:10px;}
+  .page-head h1{ font-size:26px; margin:0; font-weight:600; }
+  .page-head .sub{ color:var(--ink-soft); font-size:13.5px; margin-top:3px; }
+
+  .btn{
+    border:none; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    padding:10px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:7px;
+    transition:transform .08s ease, box-shadow .12s ease;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--ink); color:var(--paper); }
+  .btn-primary:hover{ background:#141920; }
+  .btn-stamp{ background:var(--stamp); color:var(--white); }
+  .btn-stamp:hover{ background:var(--stamp-dark); }
+  .btn-teal{ background:var(--teal); color:var(--white); }
+  .btn-teal:hover{ background:var(--teal-dark); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:1.5px solid var(--paper-line); }
+  .btn-ghost:hover{ color:var(--ink); border-color:var(--ink-soft); }
+  .btn-sm{ padding:6px 11px; font-size:12.5px; border-radius:6px; }
+  .btn-icon{ padding:8px; border-radius:7px; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+  /* Cards / tables */
+  .card{ background:var(--white); border:1px solid var(--paper-line); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:24px; }
+  .stat-card{ padding:18px 18px; position:relative; overflow:hidden; }
+  .stat-card .label{ font-size:12px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+  .stat-card .value{ font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin-top:6px; }
+  .stat-card .value.small{font-size:22px;}
+  .stat-card.accent-stamp{ border-left:4px solid var(--stamp); }
+  .stat-card.accent-teal{ border-left:4px solid var(--teal); }
+  .stat-card.accent-amber{ border-left:4px solid var(--amber); }
+  .stat-card.accent-ink{ border-left:4px solid var(--ink); }
+  .stat-card.accent-green{ border-left:4px solid #3F6B36; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; padding:10px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); border-bottom:2px solid var(--paper-line); font-weight:700; }
+  td{ padding:11px 14px; border-bottom:1px solid var(--paper-dark); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#FBF8F1; }
+  .pill{ display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; }
+  .pill-ok{ background:#E4EFE0; color:#3F6B36; }
+  .pill-low{ background:#FBEAE3; color:var(--stamp-dark); }
+  .pill-cat{ background:var(--paper-dark); color:var(--ink-soft); }
+
+  .toolbar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  input[type=text], input[type=number], select, textarea{
+    font-family:'Inter',sans-serif; font-size:13.5px; padding:9px 12px; border-radius:8px;
+    border:1.5px solid var(--paper-line); background:var(--white); color:var(--ink); outline:none;
+  }
+  input:focus, select:focus, textarea:focus{ border-color:var(--teal); }
+  .search-box{ position:relative; flex:1; min-width:180px; max-width:340px; }
+  .search-box input{ width:100%; padding-left:34px; }
+  .search-box svg{ position:absolute; left:11px; top:50%; transform:translateY(-50%); width:15px; height:15px; opacity:.5; }
+
+  /* Modal */
+  .modal-bg{ position:fixed; inset:0; background:rgba(32,26,18,.42); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal-bg.active{ display:flex; }
+  .modal{ background:var(--white); border-radius:14px; width:100%; max-width:440px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.25); max-height:90vh; overflow-y:auto; }
+  .modal h3{ margin:0 0 16px 0; font-size:19px; }
+  .field{ margin-bottom:13px; display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .field input, .field select{ width:100%; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+
+  /* Empty state */
+  .empty{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
+  .empty svg{ width:40px; height:40px; opacity:.35; margin-bottom:10px; }
+  .empty .t{ font-weight:600; color:var(--ink); font-family:'Fraunces',serif; font-size:17px; }
+
+  /* POS layout */
+  .pos-wrap{ display:grid; grid-template-columns:1.5fr 1fr; gap:20px; align-items:start; }
+  .pos-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+  .pos-tab{ padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; border:1.5px solid var(--paper-line); background:var(--white); color:var(--ink-soft); }
+  .pos-tab.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .product-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; max-height:560px; overflow-y:auto; padding-right:4px; }
+  .prod-card{ background:var(--white); border:1.5px solid var(--paper-line); border-radius:10px; padding:12px; cursor:pointer; transition:border-color .1s ease, transform .08s ease; }
+  .prod-card:hover{ border-color:var(--teal); transform:translateY(-1px); }
+  .prod-card:active{ transform:scale(.98); }
+  .prod-card.disabled{ opacity:.4; cursor:not-allowed; }
+  .prod-card .n{ font-weight:600; font-size:13px; line-height:1.3; margin-bottom:6px; min-height:34px; }
+  .prod-card .p{ font-family:'IBM Plex Mono',monospace; color:var(--teal-dark); font-weight:600; font-size:13.5px; }
+  .prod-card .s{ font-size:11px; color:var(--ink-soft); margin-top:3px; }
+
+  /* Receipt / cart */
+  .receipt-panel{ position:sticky; top:20px; }
+  .cart-items{ max-height:300px; overflow-y:auto; margin:14px 0; }
+  .cart-row{ display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed var(--paper-line); }
+  .cart-row .ci-name{ flex:1; font-size:12.5px; font-weight:600; line-height:1.3; }
+  .cart-row .ci-sub{ font-size:11px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+  .qty-ctrl{ display:flex; align-items:center; gap:6px; }
+  .qty-ctrl button{ width:22px; height:22px; border-radius:5px; border:1px solid var(--paper-line); background:var(--paper); cursor:pointer; font-weight:700; color:var(--ink);}
+  .qty-ctrl span{ min-width:20px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12.5px; }
+  .ci-total{ width:64px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; }
+  .ci-remove{ background:none; border:none; cursor:pointer; color:var(--stamp); font-size:15px; padding:2px; }
+  .totals-box{ border-top:2px dashed var(--paper-line); padding-top:12px; margin-top:6px; }
+  .totals-box .row{ display:flex; justify-content:space-between; font-size:13.5px; padding:3px 0; }
+  .totals-box .row.grand{ font-family:'Fraunces',serif; font-size:20px; font-weight:700; padding-top:8px; }
+
+  .receipt-paper{
+    font-family:'IBM Plex Mono',monospace; background:var(--white); padding:20px 18px 26px 18px;
+    position:relative; font-size:12.5px; line-height:1.55; color:var(--ink);
+  }
+  .receipt-paper::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:12px;
+    background: linear-gradient(135deg, transparent 50%, var(--paper) 50%) 0 0/12px 12px repeat-x, linear-gradient(-135deg, transparent 50%, var(--paper) 50%) 0 0/12px 12px repeat-x;
+    background-position:0 0, 6px 0;
+  }
+  .receipt-center{ text-align:center; }
+  .receipt-hr{ border:none; border-top:1px dashed var(--ink-soft); margin:8px 0; }
+  .stamp-lunas{ display:inline-block; color:var(--stamp); border:3px solid var(--stamp); border-radius:8px; padding:4px 14px; font-family:'Fraunces',serif; font-weight:700; font-size:16px; transform:rotate(-8deg); margin:10px auto; letter-spacing:.05em; }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--paper-line); border-radius:8px; }
+
+  /* Login */
+  .login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--paper); padding:20px;
+    background-image: radial-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size:18px 18px;
+  }
+  .login-card{ background:var(--white); border:1px solid var(--paper-line); border-radius:14px; box-shadow:0 20px 50px rgba(32,26,18,.12); padding:32px 30px; width:100%; max-width:360px; }
+  .login-error{ color:var(--stamp-dark); font-size:12.5px; background:#FBEAE3; padding:8px 10px; border-radius:7px; margin:2px 0 12px 0; }
+  .login-hint{ margin-top:20px; padding-top:16px; border-top:1px dashed var(--paper-line); font-size:11.5px; line-height:1.7; color:var(--ink-soft); }
+
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{ position:absolute; top:0; left:0; width:280px; }
+  }
+  @media (max-width:900px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .pos-wrap{ grid-template-columns:1fr; }
+    .sidebar{ width:76px; }
+    .brand .display, .brand .tag, .nav-item span.lbl{ display:none; }
+    .nav-item{ justify-content:center; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <svg width="52" height="57" viewBox="0 0 64 70" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:0 auto 14px auto;">
+      <circle cx="32" cy="28" r="25" fill="var(--paper)" stroke="var(--stamp)" stroke-width="2.5" stroke-dasharray="3 2.6"/>
+      <g transform="rotate(-35 32 26)">
+        <rect x="29" y="8" width="6" height="24" rx="2" fill="var(--ink)"/>
+        <path d="M29 32 L32 40 L35 32 Z" fill="var(--ink)"/>
+        <line x1="32" y1="15" x2="32" y2="30" stroke="var(--paper)" stroke-width="1"/>
+      </g>
+      <line x1="13" y1="38" x2="29" y2="38" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round"/>
+      <line x1="13" y1="43" x2="25" y2="43" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round"/>
+      <g transform="rotate(-3 32 56)">
+        <rect x="6" y="49" width="52" height="17" rx="3.5" fill="var(--stamp)"/>
+        <text x="32" y="61.5" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-weight="700" font-size="12" fill="var(--white)" letter-spacing="1.5">MCR2</text>
+      </g>
+    </svg>
+    <h1 class="display" style="text-align:center; font-size:20px; margin:0 0 2px 0;">ATK &amp; Fotocopy MCR2</h1>
+    <p style="text-align:center; color:var(--ink-soft); font-size:13px; margin:0 0 22px 0;">Masuk untuk mengakses kasir &amp; inventori</p>
+
+    <div class="field"><label>Nama Pengguna</label><input type="text" id="loginUsername" placeholder="cth. admin" autocomplete="username"></div>
+    <div class="field"><label>Kata Sandi</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"></div>
+    <p id="loginError" class="login-error" style="display:none;">Nama pengguna atau kata sandi salah.</p>
+    <button class="btn btn-stamp" style="width:100%; justify-content:center; margin-top:6px;" onclick="attemptLogin()">Masuk</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <aside class="sidebar">
+    <div class="brand">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <svg width="38" height="42" viewBox="0 0 64 70" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+          <circle cx="32" cy="28" r="25" fill="var(--paper)" stroke="var(--stamp)" stroke-width="2.5" stroke-dasharray="3 2.6"/>
+          <g transform="rotate(-35 32 26)">
+            <rect x="29" y="8" width="6" height="24" rx="2" fill="var(--ink)"/>
+            <path d="M29 32 L32 40 L35 32 Z" fill="var(--ink)"/>
+            <line x1="32" y1="15" x2="32" y2="30" stroke="var(--paper)" stroke-width="1"/>
+          </g>
+          <line x1="13" y1="38" x2="29" y2="38" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round"/>
+          <line x1="13" y1="43" x2="25" y2="43" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round"/>
+          <g transform="rotate(-3 32 56)">
+            <rect x="6" y="49" width="52" height="17" rx="3.5" fill="var(--stamp)"/>
+            <text x="32" y="61.5" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-weight="700" font-size="12" fill="var(--white)" letter-spacing="1.5">MCR2</text>
+          </g>
+        </svg>
+        <div>
+          <p class="display" style="margin:0; font-size:18px; line-height:1.2;">ATK &amp; Fotocopy<br>MCR2</p>
+        </div>
+      </div>
+      <p class="tag" style="margin-top:8px;">Inventori &amp; Kasir</p>
+    </div>
+    <button class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+      <span class="lbl">Dasbor</span>
+    </button>
+    <button class="nav-item" data-view="pos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 7V5a2 2 0 012-2h8a2 2 0 012 2v2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="6" y1="16" x2="14" y2="16"/></svg>
+      <span class="lbl">Kasir (POS)</span>
+    </button>
+    <button class="nav-item" data-view="inventory">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg>
+      <span class="lbl">Inventori ATK</span>
+    </button>
+    <button class="nav-item" data-view="services">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M14 2v6h6"/></svg>
+      <span class="lbl">Layanan Fotocopy</span>
+    </button>
+    <button class="nav-item" data-view="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span class="lbl">Riwayat Transaksi</span>
+    </button>
+    <button class="nav-item" data-view="profit" id="navProfit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+      <span class="lbl">Laporan Untung</span>
+    </button>
+    <button class="nav-item" data-view="stocklog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg>
+      <span class="lbl">Riwayat Stok</span>
+    </button>
+    <button class="nav-item" data-view="users">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+      <span class="lbl">Pengguna</span>
+    </button>
+    <button class="nav-item" data-view="sync">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.7V12a9 9 0 019-9c2.7 0 5.1 1.2 6.7 3.1"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.3V12a9 9 0 01-9 9c-2.7 0-5.1-1.2-6.7-3.1"/></svg>
+      <span class="lbl">Sinkronisasi</span>
+    </button>
+    <div class="sidebar-footer">
+      <div id="syncStatusBox" style="display:flex; align-items:center; gap:6px; font-size:11.5px; margin-bottom:10px; padding:6px 8px; border-radius:6px; background:var(--paper);">
+        <span id="syncDot" style="width:8px; height:8px; border-radius:50%; background:var(--ink-soft); flex-shrink:0;"></span>
+        <span id="syncStatusText">Cloud: belum diatur</span>
+      </div>
+      <div id="currentUserBox" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <div style="font-size:12.5px;">
+          <div style="font-weight:600; color:var(--ink);" id="currentUserName">—</div>
+          <div style="color:var(--ink-soft); font-size:11px;" id="currentUserRole">—</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Keluar</button>
+      </div>
+      Data tersimpan otomatis di perangkat ini.
+      <div style="display:flex; gap:6px; margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;" onclick="exportData()">⬇ Export</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;" onclick="document.getElementById('importFile').click()">⬆ Import</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div><h1>Dasbor</h1><p class="sub" id="todayLabel"></p></div>
+        <button class="btn btn-stamp" onclick="goto('pos')">+ Transaksi Baru</button>
+      </div>
+      <div class="stat-grid">
+        <div class="card stat-card accent-stamp"><div class="label">Omset Hari Ini</div><div class="value" id="statOmset">Rp 0</div></div>
+        <div class="card stat-card accent-green" id="cardProfit"><div class="label">Untung Hari Ini</div><div class="value" id="statProfit">Rp 0</div></div>
+        <div class="card stat-card accent-teal"><div class="label">Transaksi Hari Ini</div><div class="value" id="statTrx">0</div></div>
+        <div class="card stat-card accent-amber"><div class="label">Stok Menipis</div><div class="value" id="statLow">0</div></div>
+        <div class="card stat-card accent-ink"><div class="label">Total Produk ATK</div><div class="value" id="statProd">0</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start;">
+        <div class="card" style="padding:18px;">
+          <h3 style="margin:0 0 12px 0; font-size:16px;">Transaksi Terbaru</h3>
+          <table><thead><tr><th>No. Struk</th><th>Waktu</th><th>Item</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody id="recentTrxBody"></tbody></table>
+          <div class="empty" id="recentEmpty" style="display:none;">Belum ada transaksi.</div>
+        </div>
+        <div class="card" style="padding:18px;">
+          <h3 style="margin:0 0 12px 0; font-size:16px;">Perlu Restok</h3>
+          <table><tbody id="lowStockBody"></tbody></table>
+          <div class="empty" id="lowEmpty" style="display:none;">Stok semua produk aman.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POS -->
+    <section class="view" id="view-pos">
+      <div class="page-head"><div><h1>Kasir</h1><p class="sub">Pilih produk atau layanan fotocopy untuk ditambahkan ke keranjang.</p></div></div>
+      <div class="pos-wrap">
+        <div>
+          <div class="pos-tabs">
+            <div class="pos-tab active" data-postab="produk">Produk ATK</div>
+            <div class="pos-tab" data-postab="fotocopy">Layanan Fotocopy</div>
+          </div>
+          <div class="search-box" style="max-width:100%; margin-bottom:14px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="posSearch" placeholder="Cari nama produk / layanan...">
+          </div>
+          <div class="product-grid" id="posGrid"></div>
+        </div>
+        <div class="receipt-panel">
+          <div class="card" style="padding:18px;">
+            <h3 style="margin:0; font-size:16px;">Keranjang</h3>
+            <div class="cart-items" id="cartItems"></div>
+            <div class="empty" id="cartEmpty" style="padding:20px 0;">Keranjang masih kosong.</div>
+            <div class="totals-box">
+              <div class="row"><span>Subtotal</span><span class="mono" id="subtotalVal">Rp 0</span></div>
+              <div class="row grand"><span>Total</span><span class="mono" id="totalVal">Rp 0</span></div>
+            </div>
+            <div class="field" style="margin-top:14px;">
+              <label>Uang Diterima (Rp)</label>
+              <input type="number" id="cashInput" placeholder="0" min="0">
+            </div>
+            <div class="row" style="display:flex; justify-content:space-between; font-size:13.5px; padding:4px 0 10px 0;">
+              <span>Kembalian</span><span class="mono" id="changeVal" style="font-weight:600;">Rp 0</span>
+            </div>
+            <button class="btn btn-stamp" style="width:100%; justify-content:center;" id="checkoutBtn" onclick="checkout()">Proses Pembayaran</button>
+            <button class="btn btn-ghost btn-sm" style="width:100%; justify-content:center; margin-top:8px;" onclick="clearCart()">Kosongkan Keranjang</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="view" id="view-inventory">
+      <div class="page-head">
+        <div><h1>Inventori ATK</h1><p class="sub">Kelola stok alat tulis kantor.</p></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="downloadTemplate()">📄 Unduh Template Excel</button>
+          <button class="btn btn-teal" onclick="exportProductsExcel()">⬇ Export ke Excel</button>
+          <button class="btn btn-teal" onclick="document.getElementById('importExcelFile').click()">⬆ Import dari Excel</button>
+          <input type="file" id="importExcelFile" accept=".xlsx,.xls,.csv" style="display:none;">
+          <button class="btn btn-primary" onclick="openProductModal()">+ Tambah Produk</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="invSearch" placeholder="Cari produk...">
+        </div>
+        <select id="invCatFilter"><option value="">Semua Kategori</option></select>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>Nama Produk</th><th>Kategori</th><th>Harga Beli</th><th>Harga Jual</th><th>Stok</th><th>Status</th><th></th></tr></thead>
+        <tbody id="invBody"></tbody></table>
+        <div class="empty" id="invEmpty" style="display:none;">
+          <div class="t">Belum ada produk</div>
+          <p>Tambahkan produk ATK pertama Anda.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="view" id="view-services">
+      <div class="page-head">
+        <div><h1>Layanan Fotocopy</h1><p class="sub">Kelola daftar harga jasa fotocopy, print, dan penjilidan.</p></div>
+        <button class="btn btn-primary" onclick="openServiceModal()">+ Tambah Layanan</button>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>Nama Layanan</th><th>Satuan</th><th>Harga</th><th></th></tr></thead>
+        <tbody id="svcBody"></tbody></table>
+        <div class="empty" id="svcEmpty" style="display:none;">
+          <div class="t">Belum ada layanan</div>
+          <p>Tambahkan layanan fotocopy pertama Anda.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="view" id="view-history">
+      <div class="page-head"><div><h1>Riwayat Transaksi</h1><p class="sub">Semua transaksi penjualan yang tercatat.</p></div></div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>No. Struk</th><th>Tanggal</th><th>Jumlah Item</th><th style="text-align:right;">Total</th><th></th></tr></thead>
+        <tbody id="histBody"></tbody></table>
+        <div class="empty" id="histEmpty" style="display:none;">Belum ada riwayat transaksi.</div>
+      </div>
+    </section>
+
+    <!-- PROFIT REPORT -->
+    <section class="view" id="view-profit">
+      <div class="page-head"><div><h1>Laporan Untung</h1><p class="sub">Keuntungan dihitung dari selisih harga jual dan harga beli (modal) pada tiap transaksi.</p></div></div>
+
+      <div class="toolbar">
+        <div class="field" style="margin:0;">
+          <label>Dari Tanggal</label>
+          <input type="date" id="profitFrom">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Sampai Tanggal</label>
+          <input type="date" id="profitTo">
+        </div>
+        <button class="btn btn-teal" style="margin-top:19px;" onclick="renderProfitReport()">Terapkan</button>
+        <button class="btn btn-ghost" style="margin-top:19px;" onclick="setProfitRangeToday()">Hari Ini</button>
+        <button class="btn btn-ghost" style="margin-top:19px;" onclick="setProfitRangeMonth()">Bulan Ini</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="card stat-card accent-stamp"><div class="label">Total Omset</div><div class="value small" id="profitOmset">Rp 0</div></div>
+        <div class="card stat-card accent-amber"><div class="label">Total Modal (HPP)</div><div class="value small" id="profitModal">Rp 0</div></div>
+        <div class="card stat-card accent-green"><div class="label">Total Untung</div><div class="value small" id="profitUntung">Rp 0</div></div>
+        <div class="card stat-card accent-ink"><div class="label">Margin Rata-rata</div><div class="value small" id="profitMargin">0%</div></div>
+      </div>
+
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>Tanggal</th><th>No. Struk</th><th>Kasir</th><th style="text-align:right;">Omset</th><th style="text-align:right;">Modal</th><th style="text-align:right;">Untung</th></tr></thead>
+        <tbody id="profitBody"></tbody></table>
+        <div class="empty" id="profitEmpty" style="display:none;">Tidak ada transaksi pada rentang tanggal ini.</div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:12px; max-width:600px;">
+        Catatan: layanan fotocopy dianggap untung 100% dari harga jual (tidak ada harga beli/modal tercatat untuk layanan). Untuk transaksi lama sebelum fitur ini aktif, modal dihitung memakai harga beli produk saat ini sebagai perkiraan.
+      </p>
+    </section>
+
+    <!-- STOCK LOG -->
+    <section class="view" id="view-stocklog">
+      <div class="page-head"><div><h1>Riwayat Stok</h1><p class="sub">Catatan setiap perubahan stok: tanggal, jumlah, dan siapa yang menginput.</p></div></div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="stockLogSearch" placeholder="Cari nama produk...">
+        </div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>Tanggal</th><th>Produk</th><th>Aktivitas</th><th>Perubahan</th><th>Stok Sesudah</th><th>Catatan</th><th>Dicatat Oleh</th></tr></thead>
+        <tbody id="stockLogBody"></tbody></table>
+        <div class="empty" id="stockLogEmpty" style="display:none;">Belum ada riwayat perubahan stok.</div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="view" id="view-users">
+      <div class="page-head">
+        <div><h1>Pengguna</h1><p class="sub">Kelola akun yang bisa masuk ke aplikasi ini.</p></div>
+        <button class="btn btn-primary" onclick="openUserModal()">+ Tambah Pengguna</button>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table><thead><tr><th>Nama Pengguna</th><th>Nama Lengkap</th><th>Peran</th><th></th></tr></thead>
+        <tbody id="usersBody"></tbody></table>
+      </div>
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:12px; max-width:560px;">
+        Catatan: karena aplikasi ini berjalan sepenuhnya di perangkat/browser lokal, akun &amp; kata sandi ini berfungsi untuk pencatatan siapa yang bertugas (bukan keamanan tingkat tinggi). Jangan gunakan kata sandi yang juga dipakai di akun penting lain.
+      </p>
+    </section>
+
+    <!-- SYNC -->
+    <section class="view" id="view-sync">
+      <div class="page-head"><div><h1>Sinkronisasi Cloud</h1><p class="sub">Hubungkan ke Firebase supaya data bisa dibuka &amp; diperbarui dari perangkat lain.</p></div></div>
+
+      <div class="card" style="padding:20px; max-width:640px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+          <span id="syncDot2" style="width:10px; height:10px; border-radius:50%; background:var(--ink-soft);"></span>
+          <strong id="syncStatusText2">Belum terhubung ke cloud</strong>
+        </div>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin-top:0;">
+          Tempel konfigurasi Firebase (dari Firebase Console → Project Settings → Your apps) dan buat "Kode Toko" bebas
+          (contoh: <span class="mono">mcr2-toko-utama</span>). Kode Toko ini menentukan lokasi data di Firestore — pakai
+          Kode Toko yang <strong>sama persis</strong> di semua perangkat yang ingin berbagi data yang sama.
+        </p>
+        <div class="field">
+          <label>Konfigurasi Firebase</label>
+          <textarea id="fbConfigInput" rows="9" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px;" placeholder='Tempel apa adanya dari Firebase Console, boleh format:
+{ "apiKey": "...", "projectId": "...", ... }
+
+atau potongan kode:
+const firebaseConfig = {
+  apiKey: "...",
+  projectId: "...",
+  ...
+};
+
+atau seluruh <script> tag-nya sekalian — nanti otomatis dibersihkan.'></textarea>
+        </div>
+        <div class="field">
+          <label>Kode Toko</label>
+          <input type="text" id="fbStoreIdInput" placeholder="cth. mcr2-toko-utama">
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-stamp" onclick="handleConnectFirebase()">Hubungkan &amp; Sinkronkan</button>
+          <button class="btn btn-ghost" onclick="handleDisconnectFirebase()">Putuskan Sambungan</button>
+        </div>
+        <p id="syncLog" style="font-size:12px; color:var(--ink-soft); margin-bottom:0;"></p>
+      </div>
+
+      <div class="card" style="padding:20px; max-width:640px;">
+        <h3 style="margin:0 0 10px 0; font-size:15px;">Cara Kerja Singkat</h3>
+        <ul style="font-size:13px; color:var(--ink-soft); line-height:1.8; padding-left:18px; margin:0;">
+          <li>Data tetap tersimpan di perangkat ini (localStorage) sebagai cadangan, dan juga dikirim ke Firestore.</li>
+          <li>Perangkat lain dengan konfigurasi Firebase &amp; Kode Toko yang <strong>sama</strong> akan otomatis menerima data terbaru secara real-time.</li>
+          <li>Kode Toko berfungsi seperti kunci — jangan sebarkan ke orang lain di luar toko Anda.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- User Modal -->
+<div class="modal-bg" id="userModalBg">
+  <div class="modal">
+    <h3 id="userModalTitle">Tambah Pengguna</h3>
+    <input type="hidden" id="uId">
+    <div class="field"><label>Nama Pengguna (untuk login)</label><input type="text" id="uUsername" placeholder="cth. kasir2"></div>
+    <div class="field"><label>Nama Lengkap</label><input type="text" id="uFullname" placeholder="cth. Siti Rahma"></div>
+    <div class="field"><label>Peran</label>
+      <select id="uRole"><option value="Admin">Admin</option><option value="Kasir">Kasir</option></select>
+    </div>
+    <div class="field"><label>Kata Sandi</label><input type="password" id="uPassword" placeholder="Minimal 4 karakter"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('userModalBg')">Batal</button>
+      <button class="btn btn-primary" onclick="saveUser()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Update Modal -->
+<div class="modal-bg" id="stockModalBg">
+  <div class="modal">
+    <h3>Update Stok</h3>
+    <input type="hidden" id="stkProductId">
+    <div class="field">
+      <label>Produk</label>
+      <div id="stkProductName" style="font-weight:600; font-size:14.5px;"></div>
+      <div style="font-size:12px; color:var(--ink-soft);">Stok saat ini: <span id="stkCurrentStock" class="mono"></span></div>
+    </div>
+    <div class="field">
+      <label>Jenis Perubahan</label>
+      <select id="stkType">
+        <option value="add">Tambah Stok (mis. restok dari supplier)</option>
+        <option value="reduce">Kurangi Stok (mis. rusak/hilang)</option>
+        <option value="set">Set ke Jumlah Tertentu (mis. hasil stok opname)</option>
+      </select>
+    </div>
+    <div class="field"><label>Jumlah</label><input type="number" id="stkQty" min="0" placeholder="0"></div>
+    <div class="field"><label>Catatan (opsional)</label><input type="text" id="stkNote" placeholder="cth. Restok dari CV Sinar Abadi"></div>
+    <div class="field" style="background:var(--paper-dark); padding:8px 10px; border-radius:8px;">
+      <label style="margin:0;">Dicatat oleh</label>
+      <div id="stkUserPreview" style="font-size:13px; font-weight:600;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('stockModalBg')">Batal</button>
+      <button class="btn btn-teal" onclick="saveStockUpdate()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal-bg" id="productModalBg">
+  <div class="modal">
+    <h3 id="productModalTitle">Tambah Produk</h3>
+    <input type="hidden" id="pId">
+    <div class="field"><label>Nama Produk</label><input type="text" id="pName" placeholder="cth. Pulpen Standard AE7"></div>
+    <div class="field-row">
+      <div class="field"><label>Kategori</label>
+        <select id="pCategory">
+          <option>Alat Tulis</option><option>Kertas</option><option>Tinta &amp; Toner</option><option>Peralatan Kantor</option><option>Lainnya</option>
+        </select>
+      </div>
+      <div class="field"><label>Satuan</label><input type="text" id="pUnit" placeholder="pcs / rim / box"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Harga Beli (Rp)</label><input type="number" id="pBuy" min="0" placeholder="0"></div>
+      <div class="field"><label>Harga Jual (Rp)</label><input type="number" id="pSell" min="0" placeholder="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Stok</label><input type="number" id="pStock" min="0" placeholder="0"></div>
+      <div class="field"><label>Stok Minimum</label><input type="number" id="pMin" min="0" placeholder="5"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('productModalBg')">Batal</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Service Modal -->
+<div class="modal-bg" id="serviceModalBg">
+  <div class="modal">
+    <h3 id="serviceModalTitle">Tambah Layanan</h3>
+    <input type="hidden" id="sId">
+    <div class="field"><label>Nama Layanan</label><input type="text" id="sName" placeholder="cth. Fotocopy Hitam Putih A4"></div>
+    <div class="field-row">
+      <div class="field"><label>Satuan</label><input type="text" id="sUnit" placeholder="per lembar / per jilid"></div>
+      <div class="field"><label>Harga (Rp)</label><input type="number" id="sPrice" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('serviceModalBg')">Batal</button>
+      <button class="btn btn-primary" onclick="saveService()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-bg" id="receiptModalBg">
+  <div class="modal" style="max-width:340px; padding:0; overflow:hidden;">
+    <div id="printArea"><div class="receipt-paper" id="receiptContent"></div></div>
+    <div class="modal-actions" style="padding:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('receiptModalBg')">Tutup</button>
+      <button class="btn btn-teal" onclick="window.print()">Cetak Struk</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- State ---------------- */
+let products = [];
+let services = [];
+let transactions = [];
+let users = [];
+let stockLogs = [];
+let currentUser = null;
+let cart = []; // {refType:'product'|'service', refId, name, price, qty, unit}
+let posTab = 'produk';
+let editingProductId = null;
+let editingServiceId = null;
+let editingUserId = null;
+
+// Firebase sync state
+let fbApp = null, fbDb = null, fbUnsubscribe = null;
+let syncEnabled = false;
+let applyingRemoteUpdate = false;
+let cloudPushTimer = null;
+
+const rupiah = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ---------------- Storage ---------------- */
+async function loadAll(){
+  try{
+    const p = localStorage.getItem('inv_products');
+    products = p ? JSON.parse(p) : seedProducts();
+  }catch(e){ products = seedProducts(); }
+  try{
+    const s = localStorage.getItem('inv_services');
+    services = s ? JSON.parse(s) : seedServices();
+  }catch(e){ services = seedServices(); }
+  try{
+    const t = localStorage.getItem('inv_transactions');
+    transactions = t ? JSON.parse(t) : [];
+  }catch(e){ transactions = []; }
+  try{
+    const u = localStorage.getItem('inv_users');
+    users = u ? JSON.parse(u) : seedUsers();
+  }catch(e){ users = seedUsers(); }
+  try{
+    const l = localStorage.getItem('inv_stock_logs');
+    stockLogs = l ? JSON.parse(l) : [];
+  }catch(e){ stockLogs = []; }
+  if(localStorage.getItem('inv_products')===null) await saveProducts();
+  if(localStorage.getItem('inv_services')===null) await saveServices();
+  if(localStorage.getItem('inv_users')===null) await saveUsers();
+}
+async function saveProducts(){ try{ localStorage.setItem('inv_products', JSON.stringify(products)); scheduleCloudPush(); }catch(e){ console.error(e); } }
+async function saveServices(){ try{ localStorage.setItem('inv_services', JSON.stringify(services)); scheduleCloudPush(); }catch(e){ console.error(e); } }
+async function saveTransactions(){ try{ localStorage.setItem('inv_transactions', JSON.stringify(transactions)); scheduleCloudPush(); }catch(e){ console.error(e); } }
+async function saveUsers(){ try{ localStorage.setItem('inv_users', JSON.stringify(users)); scheduleCloudPush(); }catch(e){ console.error(e); } }
+async function saveStockLogs(){ try{ localStorage.setItem('inv_stock_logs', JSON.stringify(stockLogs)); scheduleCloudPush(); }catch(e){ console.error(e); } }
+
+function seedUsers(){
+  return [
+    {id:uid(), username:'admin', password:'admin123', fullname:'Administrator', role:'Admin'},
+    {id:uid(), username:'kasir1', password:'kasir123', fullname:'Kasir 1', role:'Kasir'},
+  ];
+}
+
+function seedProducts(){
+  return [
+    {id:uid(), name:'Pulpen Standard AE7', category:'Alat Tulis', unit:'pcs', buy:2000, sell:3000, stock:48, min:10},
+    {id:uid(), name:'Pensil 2B Faber-Castell', category:'Alat Tulis', unit:'pcs', buy:1500, sell:2500, stock:6, min:10},
+    {id:uid(), name:'Kertas HVS A4 70gr', category:'Kertas', unit:'rim', buy:38000, sell:48000, stock:15, min:5},
+    {id:uid(), name:'Tinta Printer Epson Hitam', category:'Tinta & Toner', unit:'botol', buy:28000, sell:38000, stock:3, min:5},
+    {id:uid(), name:'Stapler Kecil', category:'Peralatan Kantor', unit:'pcs', buy:9000, sell:15000, stock:12, min:4},
+    {id:uid(), name:'Buku Tulis 38 Lembar', category:'Kertas', unit:'pcs', buy:2500, sell:4000, stock:60, min:15},
+  ];
+}
+function seedServices(){
+  return [
+    {id:uid(), name:'Fotocopy Hitam Putih A4', unit:'per lembar', price:300},
+    {id:uid(), name:'Fotocopy Warna A4', unit:'per lembar', price:1500},
+    {id:uid(), name:'Print Hitam Putih A4', unit:'per lembar', price:500},
+    {id:uid(), name:'Print Warna A4', unit:'per lembar', price:2000},
+    {id:uid(), name:'Jilid Spiral', unit:'per jilid', price:8000},
+    {id:uid(), name:'Laminating A4', unit:'per lembar', price:5000},
+  ];
+}
+
+/* ---------------- Login ---------------- */
+function attemptLogin(){
+  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const found = users.find(u=>u.username.toLowerCase()===username && u.password===password);
+  const errBox = document.getElementById('loginError');
+  if(!found){
+    errBox.style.display = 'block';
+    return;
+  }
+  errBox.style.display = 'none';
+  currentUser = {id:found.id, username:found.username, fullname:found.fullname, role:found.role};
+  sessionStorage.setItem('inv_session_user', JSON.stringify(currentUser));
+  showApp();
+}
+function logout(){
+  currentUser = null;
+  sessionStorage.removeItem('inv_session_user');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('currentUserName').textContent = currentUser.fullname;
+  document.getElementById('currentUserRole').textContent = currentUser.role;
+
+  const isAdmin = currentUser.role === 'Admin';
+  document.getElementById('navProfit').style.display = isAdmin ? '' : 'none';
+  document.getElementById('cardProfit').style.display = isAdmin ? '' : 'none';
+
+  goto('dashboard');
+}
+['loginUsername','loginPassword'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+});
+
+/* ---------------- Navigation ---------------- */
+function goto(view){
+  if(view==='profit' && (!currentUser || currentUser.role !== 'Admin')){
+    view = 'dashboard';
+  }
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view));
+  if(view==='dashboard') renderDashboard();
+  if(view==='pos') renderPos();
+  if(view==='inventory') renderInventory();
+  if(view==='services') renderServices();
+  if(view==='history') renderHistory();
+  if(view==='profit') renderProfitReport();
+  if(view==='stocklog') renderStockLog();
+  if(view==='users') renderUsers();
+  if(view==='sync') renderSyncStatus();
+}
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=>goto(btn.dataset.view));
+});
+
+/* ---------------- Dashboard ---------------- */
+function calcItemCost(item){
+  // Pakai cost yang tersimpan di transaksi (untuk data baru).
+  // Untuk transaksi lama tanpa field cost, perkirakan dari harga beli produk saat ini.
+  if(item.cost !== undefined && item.cost !== null) return item.cost * item.qty;
+  if(item.type === 'product'){
+    const p = products.find(x=>x.name === item.name);
+    return p ? (p.buy || 0) * item.qty : 0;
+  }
+  return 0; // layanan fotocopy dianggap tanpa modal tercatat
+}
+function calcTrxProfit(trx){
+  const omset = trx.total;
+  const modal = trx.items.reduce((a,i)=> a + calcItemCost(i), 0);
+  return { omset, modal, untung: omset - modal };
+}
+
+function renderDashboard(){
+  const today = new Date();
+  document.getElementById('todayLabel').textContent = today.toLocaleDateString('id-ID',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  const todayStr = today.toDateString();
+  const todaysTrx = transactions.filter(t=> new Date(t.date).toDateString()===todayStr);
+  const omset = todaysTrx.reduce((a,t)=>a+t.total,0);
+  document.getElementById('statOmset').textContent = rupiah(omset);
+  const todaysProfit = todaysTrx.reduce((a,t)=> a + calcTrxProfit(t).untung, 0);
+  document.getElementById('statProfit').textContent = rupiah(todaysProfit);
+  document.getElementById('statTrx').textContent = todaysTrx.length;
+  const lowStock = products.filter(p=>p.stock <= p.min);
+  document.getElementById('statLow').textContent = lowStock.length;
+  document.getElementById('statProd').textContent = products.length;
+
+  const recentBody = document.getElementById('recentTrxBody');
+  const recent = [...transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  recentBody.innerHTML = recent.map(t=>`
+    <tr><td class="mono">${t.receiptNo}</td><td>${new Date(t.date).toLocaleString('id-ID',{hour:'2-digit',minute:'2-digit', day:'2-digit', month:'short'})}</td>
+    <td>${t.items.reduce((a,i)=>a+i.qty,0)} item</td><td style="text-align:right;" class="mono">${rupiah(t.total)}</td></tr>`).join('');
+  document.getElementById('recentEmpty').style.display = recent.length? 'none':'block';
+
+  const lowBody = document.getElementById('lowStockBody');
+  lowBody.innerHTML = lowStock.slice(0,8).map(p=>`
+    <tr><td>${p.name}</td><td style="text-align:right;"><span class="pill pill-low">${p.stock} ${p.unit} tersisa</span></td></tr>`).join('');
+  document.getElementById('lowEmpty').style.display = lowStock.length? 'none':'block';
+}
+
+/* ---------------- Profit Report ---------------- */
+function toDateInputValue(d){
+  return d.toISOString().slice(0,10);
+}
+function setProfitRangeToday(){
+  const t = toDateInputValue(new Date());
+  document.getElementById('profitFrom').value = t;
+  document.getElementById('profitTo').value = t;
+  renderProfitReport();
+}
+function setProfitRangeMonth(){
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('profitFrom').value = toDateInputValue(first);
+  document.getElementById('profitTo').value = toDateInputValue(now);
+  renderProfitReport();
+}
+function renderProfitReport(){
+  const fromEl = document.getElementById('profitFrom');
+  const toEl = document.getElementById('profitTo');
+  if(!fromEl.value || !toEl.value){ setProfitRangeToday(); return; }
+  const from = new Date(fromEl.value + 'T00:00:00');
+  const to = new Date(toEl.value + 'T23:59:59');
+
+  const filtered = transactions.filter(t=>{
+    const d = new Date(t.date);
+    return d >= from && d <= to;
+  }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  let totalOmset = 0, totalModal = 0, totalUntung = 0;
+  const rows = filtered.map(t=>{
+    const {omset, modal, untung} = calcTrxProfit(t);
+    totalOmset += omset; totalModal += modal; totalUntung += untung;
+    return `<tr>
+      <td>${new Date(t.date).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td class="mono">${t.receiptNo}</td>
+      <td>${t.cashier || '—'}</td>
+      <td style="text-align:right;" class="mono">${rupiah(omset)}</td>
+      <td style="text-align:right;" class="mono">${rupiah(modal)}</td>
+      <td style="text-align:right; color:#3F6B36;" class="mono">${rupiah(untung)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('profitBody').innerHTML = rows;
+  document.getElementById('profitEmpty').style.display = filtered.length? 'none':'block';
+  document.getElementById('profitOmset').textContent = rupiah(totalOmset);
+  document.getElementById('profitModal').textContent = rupiah(totalModal);
+  document.getElementById('profitUntung').textContent = rupiah(totalUntung);
+  document.getElementById('profitMargin').textContent = totalOmset>0 ? Math.round((totalUntung/totalOmset)*100)+'%' : '0%';
+}
+
+/* ---------------- Inventory ---------------- */
+function renderInventory(){
+  const filter = document.getElementById('invSearch').value.toLowerCase();
+  const cat = document.getElementById('invCatFilter').value;
+  const catSel = document.getElementById('invCatFilter');
+  const cats = [...new Set(products.map(p=>p.category))];
+  const currentVal = catSel.value;
+  catSel.innerHTML = '<option value="">Semua Kategori</option>' + cats.map(c=>`<option ${c===currentVal?'selected':''}>${c}</option>`).join('');
+
+  const rows = products.filter(p=> p.name.toLowerCase().includes(filter) && (!cat || p.category===cat));
+  const body = document.getElementById('invBody');
+  body.innerHTML = rows.map(p=>{
+    const low = p.stock <= p.min;
+    return `<tr>
+      <td><strong>${p.name}</strong></td>
+      <td><span class="pill pill-cat">${p.category}</span></td>
+      <td class="mono">${rupiah(p.buy)}</td>
+      <td class="mono">${rupiah(p.sell)}</td>
+      <td>${p.stock} ${p.unit}</td>
+      <td>${low? `<span class="pill pill-low">Stok Menipis</span>` : `<span class="pill pill-ok">Stok Aman</span>`}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-teal btn-sm" onclick="openStockModal('${p.id}')">Update Stok</button>
+        <button class="btn btn-ghost btn-sm" onclick="openProductModal('${p.id}')">Ubah</button>
+        ${currentUser && currentUser.role==='Admin' ? `<button class="btn btn-ghost btn-sm" style="color:var(--stamp);" onclick="deleteProduct('${p.id}')">Hapus</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('invEmpty').style.display = rows.length? 'none':'block';
+}
+document.getElementById('invSearch').addEventListener('input', renderInventory);
+document.getElementById('invCatFilter').addEventListener('change', renderInventory);
+
+function openProductModal(id){
+  editingProductId = id || null;
+  document.getElementById('productModalTitle').textContent = id? 'Ubah Produk' : 'Tambah Produk';
+  if(id){
+    const p = products.find(x=>x.id===id);
+    document.getElementById('pName').value = p.name;
+    document.getElementById('pCategory').value = p.category;
+    document.getElementById('pUnit').value = p.unit;
+    document.getElementById('pBuy').value = p.buy;
+    document.getElementById('pSell').value = p.sell;
+    document.getElementById('pStock').value = p.stock;
+    document.getElementById('pMin').value = p.min;
+  } else {
+    ['pName','pUnit','pBuy','pSell','pStock','pMin'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pCategory').selectedIndex = 0;
+  }
+  document.getElementById('productModalBg').classList.add('active');
+}
+async function saveProduct(){
+  const name = document.getElementById('pName').value.trim();
+  if(!name){ alert('Nama produk wajib diisi.'); return; }
+  const data = {
+    name,
+    category: document.getElementById('pCategory').value,
+    unit: document.getElementById('pUnit').value.trim() || 'pcs',
+    buy: Number(document.getElementById('pBuy').value) || 0,
+    sell: Number(document.getElementById('pSell').value) || 0,
+    stock: Number(document.getElementById('pStock').value) || 0,
+    min: Number(document.getElementById('pMin').value) || 0,
+  };
+  if(editingProductId){
+    const idx = products.findIndex(p=>p.id===editingProductId);
+    const before = products[idx].stock;
+    products[idx] = {...products[idx], ...data};
+    if(before !== data.stock){
+      logStock({ productName: data.name, activity:'Ubah Data Produk', before, after:data.stock, note:'Stok diubah lewat form Ubah Produk' });
+    }
+  } else {
+    products.push({id:uid(), ...data});
+    if(data.stock > 0){
+      logStock({ productName: data.name, activity:'Produk Baru', before:0, after:data.stock, note:'Stok awal saat produk dibuat' });
+    }
+  }
+  await saveProducts();
+  await saveStockLogs();
+  closeModal('productModalBg');
+  renderInventory(); renderDashboard();
+}
+async function deleteProduct(id){
+  if(!currentUser || currentUser.role !== 'Admin'){
+    alert('Hanya Admin yang bisa menghapus produk dari inventori.');
+    return;
+  }
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`Hapus produk "${p.name}" dari inventori? Stok saat ini: ${p.stock} ${p.unit}.`)) return;
+  logStock({ productName: p.name, activity:'Hapus Produk', before:p.stock, after:0, note:'Produk dihapus dari inventori' });
+  products = products.filter(x=>x.id!==id);
+  await saveProducts();
+  await saveStockLogs();
+  renderInventory(); renderDashboard(); renderStockLog();
+}
+
+/* ---------------- Stock Log ---------------- */
+function logStock({productName, activity, before, after, note}){
+  stockLogs.push({
+    id: uid(),
+    date: new Date().toISOString(),
+    productName,
+    activity,
+    before,
+    after,
+    change: after - before,
+    note: note || '',
+    user: currentUser ? currentUser.fullname : 'Tidak diketahui'
+  });
+}
+function openStockModal(productId){
+  const p = products.find(x=>x.id===productId);
+  if(!p) return;
+  document.getElementById('stkProductId').value = p.id;
+  document.getElementById('stkProductName').textContent = p.name;
+  document.getElementById('stkCurrentStock').textContent = `${p.stock} ${p.unit}`;
+  document.getElementById('stkType').selectedIndex = 0;
+  document.getElementById('stkQty').value = '';
+  document.getElementById('stkNote').value = '';
+  document.getElementById('stkUserPreview').textContent = currentUser ? `${currentUser.fullname} (${currentUser.role})` : '—';
+  document.getElementById('stockModalBg').classList.add('active');
+}
+async function saveStockUpdate(){
+  const id = document.getElementById('stkProductId').value;
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  const type = document.getElementById('stkType').value;
+  const qty = Number(document.getElementById('stkQty').value);
+  const note = document.getElementById('stkNote').value.trim();
+  if(isNaN(qty) || qty < 0){ alert('Masukkan jumlah yang valid.'); return; }
+
+  const before = p.stock;
+  let after = before;
+  let activity = '';
+  if(type==='add'){ after = before + qty; activity = 'Tambah Stok'; }
+  else if(type==='reduce'){ after = Math.max(0, before - qty); activity = 'Kurangi Stok'; }
+  else if(type==='set'){ after = qty; activity = 'Stok Opname (Set Jumlah)'; }
+
+  p.stock = after;
+  await saveProducts();
+  logStock({ productName: p.name, activity, before, after, note });
+  await saveStockLogs();
+
+  closeModal('stockModalBg');
+  renderInventory(); renderDashboard();
+}
+function renderStockLog(){
+  const q = (document.getElementById('stockLogSearch').value || '').toLowerCase();
+  const rows = [...stockLogs].filter(l=>l.productName.toLowerCase().includes(q)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const body = document.getElementById('stockLogBody');
+  body.innerHTML = rows.map(l=>`
+    <tr>
+      <td>${new Date(l.date).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><strong>${l.productName}</strong></td>
+      <td>${l.activity}</td>
+      <td class="mono" style="color:${l.change<0?'var(--stamp-dark)':'var(--teal-dark)'};">${l.change>0?'+':''}${l.change}</td>
+      <td>${l.after}</td>
+      <td style="color:var(--ink-soft); font-size:12.5px;">${l.note||'—'}</td>
+      <td>${l.user}</td>
+    </tr>`).join('');
+  document.getElementById('stockLogEmpty').style.display = rows.length? 'none':'block';
+}
+document.getElementById('stockLogSearch').addEventListener('input', renderStockLog);
+
+/* ---------------- Services ---------------- */
+function renderServices(){
+  const body = document.getElementById('svcBody');
+  body.innerHTML = services.map(s=>`
+    <tr><td><strong>${s.name}</strong></td><td>${s.unit}</td><td class="mono">${rupiah(s.price)}</td>
+    <td style="white-space:nowrap;">
+      <button class="btn btn-ghost btn-sm" onclick="openServiceModal('${s.id}')">Ubah</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--stamp);" onclick="deleteService('${s.id}')">Hapus</button>
+    </td></tr>`).join('');
+  document.getElementById('svcEmpty').style.display = services.length? 'none':'block';
+}
+function openServiceModal(id){
+  editingServiceId = id || null;
+  document.getElementById('serviceModalTitle').textContent = id? 'Ubah Layanan' : 'Tambah Layanan';
+  if(id){
+    const s = services.find(x=>x.id===id);
+    document.getElementById('sName').value = s.name;
+    document.getElementById('sUnit').value = s.unit;
+    document.getElementById('sPrice').value = s.price;
+  } else {
+    ['sName','sUnit','sPrice'].forEach(id=>document.getElementById(id).value='');
+  }
+  document.getElementById('serviceModalBg').classList.add('active');
+}
+async function saveService(){
+  const name = document.getElementById('sName').value.trim();
+  if(!name){ alert('Nama layanan wajib diisi.'); return; }
+  const data = {
+    name,
+    unit: document.getElementById('sUnit').value.trim() || 'per lembar',
+    price: Number(document.getElementById('sPrice').value) || 0,
+  };
+  if(editingServiceId){
+    const idx = services.findIndex(s=>s.id===editingServiceId);
+    services[idx] = {...services[idx], ...data};
+  } else {
+    services.push({id:uid(), ...data});
+  }
+  await saveServices();
+  closeModal('serviceModalBg');
+  renderServices();
+}
+async function deleteService(id){
+  if(!confirm('Hapus layanan ini?')) return;
+  services = services.filter(s=>s.id!==id);
+  await saveServices();
+  renderServices();
+}
+
+/* ---------------- Modal helpers ---------------- */
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e=>{ if(e.target===bg) bg.classList.remove('active'); });
+});
+
+/* ---------------- POS ---------------- */
+document.querySelectorAll('.pos-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.pos-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    posTab = tab.dataset.postab;
+    renderPos();
+  });
+});
+document.getElementById('posSearch').addEventListener('input', renderPos);
+
+function renderPos(){
+  const q = document.getElementById('posSearch').value.toLowerCase();
+  const grid = document.getElementById('posGrid');
+  if(posTab==='produk'){
+    const list = products.filter(p=>p.name.toLowerCase().includes(q));
+    grid.innerHTML = list.map(p=>{
+      const out = p.stock<=0;
+      return `<div class="prod-card ${out?'disabled':''}" onclick="${out?'':`addToCart('product','${p.id}')`}">
+        <div class="n">${p.name}</div>
+        <div class="p">${rupiah(p.sell)}</div>
+        <div class="s">Stok: ${p.stock} ${p.unit}</div>
+      </div>`;
+    }).join('') || `<div class="empty">Produk tidak ditemukan.</div>`;
+  } else {
+    const list = services.filter(s=>s.name.toLowerCase().includes(q));
+    grid.innerHTML = list.map(s=>`
+      <div class="prod-card" onclick="addToCart('service','${s.id}')">
+        <div class="n">${s.name}</div>
+        <div class="p">${rupiah(s.price)}</div>
+        <div class="s">${s.unit}</div>
+      </div>`).join('') || `<div class="empty">Layanan tidak ditemukan.</div>`;
+  }
+  renderCart();
+}
+
+function addToCart(refType, refId){
+  const existing = cart.find(c=>c.refType===refType && c.refId===refId);
+  if(existing){
+    if(refType==='product'){
+      const p = products.find(x=>x.id===refId);
+      if(existing.qty+1 > p.stock){ alert('Stok tidak mencukupi.'); return; }
+    }
+    existing.qty += 1;
+  } else {
+    if(refType==='product'){
+      const p = products.find(x=>x.id===refId);
+      if(p.stock<=0){ alert('Stok habis.'); return; }
+      cart.push({refType, refId, name:p.name, price:p.sell, qty:1, unit:p.unit});
+    } else {
+      const s = services.find(x=>x.id===refId);
+      cart.push({refType, refId, name:s.name, price:s.price, qty:1, unit:s.unit});
+    }
+  }
+  renderCart();
+}
+function changeQty(idx, delta){
+  const item = cart[idx];
+  if(item.refType==='product'){
+    const p = products.find(x=>x.id===item.refId);
+    if(item.qty+delta > p.stock){ alert('Stok tidak mencukupi.'); return; }
+  }
+  item.qty += delta;
+  if(item.qty<=0) cart.splice(idx,1);
+  renderCart();
+}
+function removeFromCart(idx){ cart.splice(idx,1); renderCart(); }
+function clearCart(){ cart = []; renderCart(); }
+
+function renderCart(){
+  const box = document.getElementById('cartItems');
+  box.innerHTML = cart.map((c,i)=>`
+    <div class="cart-row">
+      <div style="flex:1;">
+        <div class="ci-name">${c.name}</div>
+        <div class="ci-sub">${rupiah(c.price)} / ${c.unit}</div>
+      </div>
+      <div class="qty-ctrl">
+        <button onclick="changeQty(${i},-1)">–</button>
+        <span>${c.qty}</span>
+        <button onclick="changeQty(${i},1)">+</button>
+      </div>
+      <div class="ci-total">${rupiah(c.price*c.qty)}</div>
+      <button class="ci-remove" onclick="removeFromCart(${i})">✕</button>
+    </div>`).join('');
+  document.getElementById('cartEmpty').style.display = cart.length? 'none':'block';
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  document.getElementById('subtotalVal').textContent = rupiah(total);
+  document.getElementById('totalVal').textContent = rupiah(total);
+  document.getElementById('checkoutBtn').disabled = cart.length===0;
+  updateChange();
+}
+document.getElementById('cashInput').addEventListener('input', updateChange);
+function updateChange(){
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const cash = Number(document.getElementById('cashInput').value) || 0;
+  const change = cash - total;
+  document.getElementById('changeVal').textContent = rupiah(Math.max(change,0));
+  document.getElementById('changeVal').style.color = change<0 ? 'var(--stamp)' : 'var(--ink)';
+}
+
+async function checkout(){
+  if(cart.length===0) return;
+  const total = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const cash = Number(document.getElementById('cashInput').value) || 0;
+  if(cash < total){ alert('Uang diterima kurang dari total belanja.'); return; }
+
+  // deduct stock for products
+  const receiptNo = 'INV' + Date.now().toString().slice(-8);
+  for(const c of cart){
+    if(c.refType==='product'){
+      const p = products.find(x=>x.id===c.refId);
+      const before = p.stock;
+      p.stock = Math.max(0, p.stock - c.qty);
+      logStock({ productName: p.name, activity:'Penjualan (Kasir)', before, after:p.stock, note:`Transaksi ${receiptNo}` });
+    }
+  }
+  await saveProducts();
+  await saveStockLogs();
+
+  const trx = {
+    id: uid(),
+    receiptNo,
+    date: new Date().toISOString(),
+    items: cart.map(c=>{
+      let cost = 0;
+      if(c.refType==='product'){
+        const p = products.find(x=>x.id===c.refId);
+        cost = p ? (p.buy || 0) : 0;
+      }
+      return {name:c.name, qty:c.qty, price:c.price, unit:c.unit, type:c.refType, cost};
+    }),
+    total, cash, change: cash-total,
+    cashier: currentUser ? currentUser.fullname : '—'
+  };
+  transactions.push(trx);
+  await saveTransactions();
+
+  showReceipt(trx);
+  cart = [];
+  document.getElementById('cashInput').value = '';
+  renderCart();
+  renderPos();
+  renderInventory();
+  renderDashboard();
+}
+
+function showReceipt(trx){
+  const el = document.getElementById('receiptContent');
+  el.innerHTML = `
+    <div class="receipt-center">
+      <svg width="34" height="37" viewBox="0 0 64 70" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 4px auto; display:block;">
+        <circle cx="32" cy="28" r="25" fill="#FFFDF8" stroke="#AE3A2E" stroke-width="2.5" stroke-dasharray="3 2.6"/>
+        <g transform="rotate(-35 32 26)">
+          <rect x="29" y="8" width="6" height="24" rx="2" fill="#20262E"/>
+          <path d="M29 32 L32 40 L35 32 Z" fill="#20262E"/>
+          <line x1="32" y1="15" x2="32" y2="30" stroke="#FFFDF8" stroke-width="1"/>
+        </g>
+        <line x1="13" y1="38" x2="29" y2="38" stroke="#2F6F6B" stroke-width="2.6" stroke-linecap="round"/>
+        <line x1="13" y1="43" x2="25" y2="43" stroke="#2F6F6B" stroke-width="2.6" stroke-linecap="round"/>
+        <g transform="rotate(-3 32 56)">
+          <rect x="6" y="49" width="52" height="17" rx="3.5" fill="#AE3A2E"/>
+          <text x="32" y="61.5" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-weight="700" font-size="12" fill="#FFFDF8" letter-spacing="1.5">MCR2</text>
+        </g>
+      </svg>
+      <strong style="font-size:15px;">ATK &amp; FOTOCOPY MCR2</strong><br>
+      <span style="font-size:11px;">Jl. Contoh No. 1, Jakarta</span>
+      <hr class="receipt-hr">
+    </div>
+    <div>No: ${trx.receiptNo}<br>${new Date(trx.date).toLocaleString('id-ID')}<br>Kasir: ${trx.cashier || '—'}</div>
+    <hr class="receipt-hr">
+    ${trx.items.map(i=>`
+      <div style="display:flex; justify-content:space-between;"><span>${i.name}</span></div>
+      <div style="display:flex; justify-content:space-between;"><span>${i.qty} x ${rupiah(i.price)}</span><span>${rupiah(i.qty*i.price)}</span></div>
+    `).join('')}
+    <hr class="receipt-hr">
+    <div style="display:flex; justify-content:space-between; font-weight:700;"><span>TOTAL</span><span>${rupiah(trx.total)}</span></div>
+    <div style="display:flex; justify-content:space-between;"><span>TUNAI</span><span>${rupiah(trx.cash)}</span></div>
+    <div style="display:flex; justify-content:space-between;"><span>KEMBALI</span><span>${rupiah(trx.change)}</span></div>
+    <div class="receipt-center"><span class="stamp-lunas">LUNAS</span></div>
+    <div class="receipt-center" style="font-size:11px;">Terima kasih atas kunjungan Anda</div>
+  `;
+  document.getElementById('receiptModalBg').classList.add('active');
+}
+
+/* ---------------- History ---------------- */
+function renderHistory(){
+  const body = document.getElementById('histBody');
+  const sorted = [...transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  body.innerHTML = sorted.map(t=>`
+    <tr>
+      <td class="mono">${t.receiptNo}</td>
+      <td>${new Date(t.date).toLocaleString('id-ID')}</td>
+      <td>${t.items.reduce((a,i)=>a+i.qty,0)} item</td>
+      <td style="text-align:right;" class="mono">${rupiah(t.total)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='showReceipt(${JSON.stringify(t).replace(/'/g,"&#39;")})'>Lihat Struk</button></td>
+    </tr>`).join('');
+  document.getElementById('histEmpty').style.display = sorted.length? 'none':'block';
+}
+
+/* ---------------- Export / Import Stok (Excel) ---------------- */
+const EXCEL_HEADERS = ['Nama Produk','Kategori','Satuan','Harga Beli','Harga Jual','Stok','Stok Minimum'];
+
+function downloadTemplate(){
+  const sample = [{
+    'Nama Produk':'Contoh: Pulpen Gel Hitam',
+    'Kategori':'Alat Tulis',
+    'Satuan':'pcs',
+    'Harga Beli':2000,
+    'Harga Jual':3000,
+    'Stok':50,
+    'Stok Minimum':10
+  }];
+  const ws = XLSX.utils.json_to_sheet(sample, {header: EXCEL_HEADERS});
+  ws['!cols'] = [{wch:28},{wch:16},{wch:10},{wch:12},{wch:12},{wch:8},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template Stok');
+  XLSX.writeFile(wb, 'template-stok-atk.xlsx');
+}
+
+function exportProductsExcel(){
+  const rows = products.map(p=>({
+    'Nama Produk': p.name,
+    'Kategori': p.category,
+    'Satuan': p.unit,
+    'Harga Beli': p.buy,
+    'Harga Jual': p.sell,
+    'Stok': p.stock,
+    'Stok Minimum': p.min
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows, {header: EXCEL_HEADERS});
+  ws['!cols'] = [{wch:28},{wch:16},{wch:10},{wch:12},{wch:12},{wch:8},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stok ATK');
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `stok-atk-${stamp}.xlsx`);
+}
+
+function parseNumberLoose(v){
+  if(v===undefined || v===null || v==='') return null;
+  if(typeof v === 'number') return v;
+  const cleaned = String(v).replace(/[^\d.,-]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',', '.');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? null : n;
+}
+function getField(row, ...keys){
+  for(const k of Object.keys(row)){
+    const norm = k.trim().toLowerCase();
+    for(const key of keys){
+      if(norm === key) return row[k];
+    }
+  }
+  return undefined;
+}
+
+document.getElementById('importExcelFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(!rows.length){ alert('File kosong atau format tidak terbaca.'); return; }
+
+      let added = 0, updated = 0, skipped = 0;
+      rows.forEach(row=>{
+        const name = String(getField(row,'nama produk','nama','produk') ?? '').trim();
+        if(!name){ skipped++; return; }
+        const category = getField(row,'kategori');
+        const unit = getField(row,'satuan','unit');
+        const buy = parseNumberLoose(getField(row,'harga beli','harga beli (rp)'));
+        const sell = parseNumberLoose(getField(row,'harga jual','harga jual (rp)'));
+        const stock = parseNumberLoose(getField(row,'stok'));
+        const min = parseNumberLoose(getField(row,'stok minimum','stok min'));
+
+        const existing = products.find(p=>p.name.trim().toLowerCase()===name.toLowerCase());
+        if(existing){
+          const beforeStock = existing.stock;
+          if(category) existing.category = category;
+          if(unit) existing.unit = unit;
+          if(buy!==null) existing.buy = buy;
+          if(sell!==null) existing.sell = sell;
+          if(stock!==null) existing.stock = stock;
+          if(min!==null) existing.min = min;
+          if(stock!==null && stock!==beforeStock){
+            logStock({ productName: existing.name, activity:'Import Excel', before:beforeStock, after:existing.stock, note:'Diperbarui lewat import file Excel' });
+          }
+          updated++;
+        } else {
+          products.push({
+            id: uid(),
+            name,
+            category: category || 'Lainnya',
+            unit: unit || 'pcs',
+            buy: buy || 0,
+            sell: sell || 0,
+            stock: stock || 0,
+            min: min || 0
+          });
+          if((stock||0) > 0){
+            logStock({ productName: name, activity:'Import Excel (Produk Baru)', before:0, after:stock||0, note:'Ditambahkan lewat import file Excel' });
+          }
+          added++;
+        }
+      });
+
+      await saveProducts();
+      await saveStockLogs();
+      renderInventory(); renderDashboard(); renderPos();
+      alert(`Import selesai.\nProduk baru ditambahkan: ${added}\nProduk diperbarui: ${updated}${skipped? `\nBaris dilewati (nama kosong): ${skipped}`:''}`);
+    }catch(err){
+      alert('Gagal membaca file. Pastikan formatnya sesuai template (.xlsx atau .csv).');
+      console.error(err);
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+/* ---------------- Export / Import ---------------- */
+function exportData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    products, services, transactions
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `backup-toko-atk-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('importFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!Array.isArray(data.products) || !Array.isArray(data.services) || !Array.isArray(data.transactions)){
+        alert('File tidak valid. Pastikan ini adalah file backup dari aplikasi ini.');
+        return;
+      }
+      const mode = confirm(
+        'Klik OK untuk GANTI SEMUA data saat ini dengan isi file backup.\nKlik Batal untuk GABUNGKAN (tambahkan) data dari file ke data yang sudah ada.'
+      );
+      if(mode){
+        products = data.products;
+        services = data.services;
+        transactions = data.transactions;
+      } else {
+        const existingProductIds = new Set(products.map(p=>p.id));
+        data.products.forEach(p=>{ if(!existingProductIds.has(p.id)) products.push(p); });
+        const existingServiceIds = new Set(services.map(s=>s.id));
+        data.services.forEach(s=>{ if(!existingServiceIds.has(s.id)) services.push(s); });
+        const existingTrxIds = new Set(transactions.map(t=>t.id));
+        data.transactions.forEach(t=>{ if(!existingTrxIds.has(t.id)) transactions.push(t); });
+      }
+      await saveProducts();
+      await saveServices();
+      await saveTransactions();
+      renderDashboard(); renderPos(); renderInventory(); renderServices(); renderHistory();
+      alert('Data berhasil diimpor.');
+    }catch(err){
+      alert('Gagal membaca file. Pastikan formatnya benar (.json hasil export dari aplikasi ini).');
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ---------------- Users ---------------- */
+function renderUsers(){
+  const body = document.getElementById('usersBody');
+  body.innerHTML = users.map(u=>`
+    <tr>
+      <td class="mono">${u.username}</td>
+      <td>${u.fullname}</td>
+      <td><span class="pill pill-cat">${u.role}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="openUserModal('${u.id}')">Ubah</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--stamp);" onclick="deleteUser('${u.id}')">Hapus</button>
+      </td>
+    </tr>`).join('');
+}
+function openUserModal(id){
+  editingUserId = id || null;
+  document.getElementById('userModalTitle').textContent = id? 'Ubah Pengguna' : 'Tambah Pengguna';
+  if(id){
+    const u = users.find(x=>x.id===id);
+    document.getElementById('uUsername').value = u.username;
+    document.getElementById('uFullname').value = u.fullname;
+    document.getElementById('uRole').value = u.role;
+    document.getElementById('uPassword').value = u.password;
+  } else {
+    ['uUsername','uFullname','uPassword'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('uRole').selectedIndex = 1;
+  }
+  document.getElementById('userModalBg').classList.add('active');
+}
+async function saveUser(){
+  const username = document.getElementById('uUsername').value.trim();
+  const fullname = document.getElementById('uFullname').value.trim();
+  const password = document.getElementById('uPassword').value;
+  const role = document.getElementById('uRole').value;
+  if(!username || !fullname){ alert('Nama pengguna dan nama lengkap wajib diisi.'); return; }
+  if(!password || password.length < 4){ alert('Kata sandi minimal 4 karakter.'); return; }
+  const dupe = users.find(u=>u.username.toLowerCase()===username.toLowerCase() && u.id!==editingUserId);
+  if(dupe){ alert('Nama pengguna sudah dipakai, gunakan nama lain.'); return; }
+
+  if(editingUserId){
+    const idx = users.findIndex(u=>u.id===editingUserId);
+    users[idx] = {...users[idx], username, fullname, password, role};
+    if(currentUser && currentUser.id===editingUserId){
+      currentUser = {...currentUser, username, fullname, role};
+      sessionStorage.setItem('inv_session_user', JSON.stringify(currentUser));
+      document.getElementById('currentUserName').textContent = currentUser.fullname;
+      document.getElementById('currentUserRole').textContent = currentUser.role;
+    }
+  } else {
+    users.push({id:uid(), username, fullname, password, role});
+  }
+  await saveUsers();
+  closeModal('userModalBg');
+  renderUsers();
+}
+async function deleteUser(id){
+  if(users.length<=1){ alert('Minimal harus ada satu pengguna.'); return; }
+  if(currentUser && currentUser.id===id){ alert('Tidak bisa menghapus akun yang sedang digunakan.'); return; }
+  if(!confirm('Hapus pengguna ini?')) return;
+  users = users.filter(u=>u.id!==id);
+  await saveUsers();
+  renderUsers();
+}
+
+/* ---------------- Firebase Cloud Sync ---------------- */
+function loadSyncSettings(){
+  try{
+    const cfg = localStorage.getItem('inv_firebase_config');
+    const storeId = localStorage.getItem('inv_store_id');
+    if(cfg && storeId){
+      return { config: JSON.parse(cfg), storeId };
+    }
+  }catch(e){}
+  return null;
+}
+function saveSyncSettings(config, storeId){
+  localStorage.setItem('inv_firebase_config', JSON.stringify(config));
+  localStorage.setItem('inv_store_id', storeId);
+}
+function clearSyncSettings(){
+  localStorage.removeItem('inv_firebase_config');
+  localStorage.removeItem('inv_store_id');
+}
+
+function setSyncUI(status, message){
+  // status: 'off' | 'connecting' | 'on' | 'error'
+  const colors = { off:'var(--ink-soft)', connecting:'var(--amber)', on:'#3F6B36', error:'var(--stamp)' };
+  const dot = colors[status] || 'var(--ink-soft)';
+  document.querySelectorAll('#syncDot, #syncDot2').forEach(el=> el.style.background = dot);
+  const label = {
+    off:'Cloud: belum diatur',
+    connecting:'Cloud: menghubungkan...',
+    on:'Cloud: tersinkron',
+    error:'Cloud: gagal terhubung'
+  }[status] || '';
+  document.getElementById('syncStatusText').textContent = message ? message : label;
+  document.getElementById('syncStatusText2').textContent = message ? message : label;
+}
+
+function extractFirebaseConfig(raw){
+  raw = (raw || '').trim();
+  if(!raw) return null;
+
+  // 1) Coba langsung sebagai JSON murni
+  try{ return JSON.parse(raw); }catch(e){}
+
+  // 2) Cari blok "firebaseConfig = { ... }" (potongan dari <script> Firebase Console)
+  let objStr = null;
+  const namedMatch = raw.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\})\s*;/);
+  if(namedMatch){
+    objStr = namedMatch[1];
+  } else {
+    // 3) Fallback: ambil blok { ... } pertama yang ditemukan di teks yang ditempel
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if(start !== -1 && end !== -1 && end > start){
+      objStr = raw.slice(start, end + 1);
+    }
+  }
+  if(!objStr) return null;
+
+  // Ubah object literal JS jadi JSON valid: kasih tanda kutip ke key & samakan kutip jadi ganda
+  const cleaned = objStr
+    .replace(/'/g, '"')
+    .replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try{ return JSON.parse(cleaned); }catch(e){ return null; }
+}
+
+async function handleConnectFirebase(){
+  const raw = document.getElementById('fbConfigInput').value.trim();
+  const storeId = document.getElementById('fbStoreIdInput').value.trim();
+  const logEl = document.getElementById('syncLog');
+  logEl.textContent = '';
+  if(!raw || !storeId){
+    logEl.textContent = 'Isi konfigurasi Firebase dan Kode Toko terlebih dahulu.';
+    return;
+  }
+  const config = extractFirebaseConfig(raw);
+  if(!config || !config.apiKey || !config.projectId){
+    logEl.textContent = 'Konfigurasi tidak terbaca. Tempel apa adanya dari Firebase Console (boleh JSON, boleh potongan kode firebaseConfig, boleh seluruh script tag-nya).';
+    return;
+  }
+  // Normalisasi tampilan supaya rapi & mudah dibaca ulang nanti
+  document.getElementById('fbConfigInput').value = JSON.stringify(config, null, 2);
+
+  saveSyncSettings(config, storeId);
+  await connectFirebase(config, storeId);
+}
+function handleDisconnectFirebase(){
+  if(fbUnsubscribe){ fbUnsubscribe(); fbUnsubscribe = null; }
+  syncEnabled = false;
+  clearSyncSettings();
+  setSyncUI('off');
+  document.getElementById('syncLog').textContent = 'Sinkronisasi cloud dinonaktifkan. Data tetap tersimpan lokal di perangkat ini.';
+}
+
+async function connectFirebase(config, storeId){
+  setSyncUI('connecting');
+  try{
+    if(!fbApp){
+      fbApp = firebase.initializeApp(config);
+    }
+    fbDb = firebase.firestore();
+    await firebase.auth().signInAnonymously();
+
+    const docRef = fbDb.collection('atk_pos_stores').doc(storeId);
+    const snap = await docRef.get();
+
+    if(!snap.exists){
+      // First device: seed cloud with current local data
+      await docRef.set({
+        products, services, transactions, users, stockLogs,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    if(fbUnsubscribe) fbUnsubscribe();
+    fbUnsubscribe = docRef.onSnapshot(doc=>{
+      if(!doc.exists) return;
+      const data = doc.data();
+      applyingRemoteUpdate = true;
+      if(Array.isArray(data.products)) products = data.products;
+      if(Array.isArray(data.services)) services = data.services;
+      if(Array.isArray(data.transactions)) transactions = data.transactions;
+      if(Array.isArray(data.users)) users = data.users;
+      if(Array.isArray(data.stockLogs)) stockLogs = data.stockLogs;
+      // keep local cache in sync too
+      localStorage.setItem('inv_products', JSON.stringify(products));
+      localStorage.setItem('inv_services', JSON.stringify(services));
+      localStorage.setItem('inv_transactions', JSON.stringify(transactions));
+      localStorage.setItem('inv_users', JSON.stringify(users));
+      localStorage.setItem('inv_stock_logs', JSON.stringify(stockLogs));
+
+      renderDashboard(); renderPos(); renderInventory(); renderServices();
+      renderHistory(); renderStockLog();
+      if(document.getElementById('view-users').classList.contains('active')) renderUsers();
+      applyingRemoteUpdate = false;
+      setSyncUI('on', 'Cloud: tersinkron • ' + new Date().toLocaleTimeString('id-ID'));
+    }, err=>{
+      console.error(err);
+      setSyncUI('error');
+    });
+
+    syncEnabled = true;
+    setSyncUI('on');
+    document.getElementById('syncLog').textContent = 'Berhasil terhubung. Perangkat lain dengan Kode Toko yang sama akan menerima data ini secara otomatis.';
+  }catch(err){
+    console.error(err);
+    syncEnabled = false;
+    setSyncUI('error');
+    document.getElementById('syncLog').textContent = 'Gagal terhubung: ' + (err.message || err);
+  }
+}
+
+function scheduleCloudPush(){
+  if(!syncEnabled || applyingRemoteUpdate) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(pushToCloud, 700);
+}
+async function pushToCloud(){
+  if(!syncEnabled || !fbDb) return;
+  const settings = loadSyncSettings();
+  if(!settings) return;
+  try{
+    await fbDb.collection('atk_pos_stores').doc(settings.storeId).set({
+      products, services, transactions, users, stockLogs,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setSyncUI('on', 'Cloud: tersinkron • ' + new Date().toLocaleTimeString('id-ID'));
+  }catch(err){
+    console.error(err);
+    setSyncUI('error');
+  }
+}
+function renderSyncStatus(){
+  const settings = loadSyncSettings();
+  if(settings){
+    document.getElementById('fbStoreIdInput').value = settings.storeId;
+    document.getElementById('fbConfigInput').value = JSON.stringify(settings.config, null, 2);
+  }
+  setSyncUI(syncEnabled ? 'on' : (settings ? 'connecting' : 'off'));
+}
+
+/* ---------------- Init ---------------- */
+(async function init(){
+  await loadAll();
+  renderDashboard();
+  renderPos();
+  renderInventory();
+  renderServices();
+  renderHistory();
+  renderStockLog();
+  renderUsers();
+
+  const savedSync = loadSyncSettings();
+  if(savedSync && typeof firebase !== 'undefined'){
+    connectFirebase(savedSync.config, savedSync.storeId);
+  } else if(savedSync){
+    setSyncUI('error', 'Cloud: tidak ada koneksi internet');
+  } else {
+    setSyncUI('off');
+  }
+
+  try{
+    const savedSession = sessionStorage.getItem('inv_session_user');
+    if(savedSession){
+      const parsed = JSON.parse(savedSession);
+      const stillValid = users.find(u=>u.id===parsed.id);
+      if(stillValid){
+        currentUser = parsed;
+        showApp();
+        return;
+      }
+    }
+  }catch(e){}
+  document.getElementById('loginScreen').style.display = 'flex';
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
